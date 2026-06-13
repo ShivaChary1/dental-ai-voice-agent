@@ -1,0 +1,85 @@
+# Eval cases for the conversation agent.
+#
+# Each case is a fixed sequence of caller utterances ("turns") sent to a fresh
+# conversation thread against the seeded "smile-care-dental" clinic. After the
+# full sequence runs, the grader checks:
+#   - expected_tools: every listed tool name must have been called at least once
+#     somewhere in the conversation (order not enforced)
+#   - expected_outcome: the final call_sessions-style outcome
+#     (faq | booked | rescheduled | cancelled | escalated)
+#   - forbidden_tools (optional): these tools must NOT have been called
+#
+# Run with: python -m evals.run_eval
+
+- id: faq_hours
+  language: en-IN
+  turns:
+    - "Hi, what time are you open until today?"
+  expected_tools: [search_clinic_kb]
+  expected_outcome: faq
+
+- id: faq_pricing_hindi
+  language: hi-IN
+  turns:
+    - "रूट कैनाल का खर्चा कितना है?"
+  expected_tools: [search_clinic_kb]
+  expected_outcome: faq
+
+- id: faq_unknown_falls_back
+  language: en-IN
+  turns:
+    - "Do you offer free home pickup for elderly patients?"
+  expected_tools: [search_clinic_kb]
+  expected_outcome: faq
+  forbidden_tools: [book_appointment]
+
+- id: booking_happy_path
+  language: en-IN
+  turns:
+    - "I'd like to book a cleaning appointment."
+    - "My name is Rahul Sharma, phone number 9876543210."
+    - "Tomorrow morning if possible, any doctor is fine."
+    - "Yes that works, please confirm. My number again is nine eight seven six five four three two one zero."
+  expected_tools: [check_availability, book_appointment]
+  expected_outcome: booked
+
+- id: booking_ambiguous_date
+  language: en-IN
+  turns:
+    - "Can I get a root canal appointment next Tuesday with Dr. Karthik?"
+    - "My name is Priya Nair, phone is 9123456780."
+    - "Yes, 10am works, please go ahead and confirm."
+  expected_tools: [check_availability, book_appointment]
+  expected_outcome: booked
+
+- id: booking_unavailable_slot_offers_alternative
+  language: en-IN
+  turns:
+    - "I want teeth whitening at 3am tonight."
+    - "Okay, what about tomorrow afternoon instead, my name is Sara Khan, phone 9988776655."
+    - "Yes please confirm that one."
+  expected_tools: [check_availability, book_appointment]
+  expected_outcome: booked
+
+- id: reschedule_flow
+  language: en-IN
+  turns:
+    - "I need to reschedule my appointment. My phone number is 9876543210."
+    - "Can you move it to the next available slot the day after?"
+    - "Yes, please confirm that change."
+  expected_tools: [find_my_appointments, check_availability, reschedule_appointment]
+  expected_outcome: rescheduled
+
+- id: cancel_flow
+  language: en-IN
+  turns:
+    - "I'd like to cancel my appointment, phone number 9123456780."
+    - "Yes please cancel it."
+  expected_tools: [find_my_appointments, cancel_appointment]
+  expected_outcome: cancelled
+
+- id: escalation_on_repeated_failure
+  language: en-IN
+  turns:
+    - "I want to speak to a human right now, this is urgent."
+  expected_outcome: escalated
